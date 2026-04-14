@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CSM Dashboard - Onfly</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background: #F8F9FB; }
+    select, input, button { font-family: 'Outfit', sans-serif; }
+    input::placeholder { color: #9CA3AF; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useCallback, useEffect } = React;
+
+const CSMS = ["alan.sousa","alexandre.marques","alexsander.coelho","amanda.alves","ana.carolina","ana.gabriela","ana.vieira","analia.soares","andre.salles","anna.luiza","anny.caroline","barbara.felizardo","bethania.dias","brenda.reis","brenda.rodrigues","carla.jesus","charlene.rocha","chaynara.nascimento","daniel.massara","denise.vale","eduarda.sampaio","fabio.agoha","fernanda.lima","flavia.moreira","gabriel.tavares","gabriela.bastos","gabriela.maia","gabriela.pio","gabriella.gomes","giovana.torres","giulia.huoya","gustavo.siroti","hugo.moreira","hugo.pereira","ingrid.demaria","jessica.castro","jessica.moreira","jessica.pires","jonathan.andrada","julia.caroline","karen.barreto","karoline.rodrigues","larissa.amorim","leonardo.leite","luciana.rocha","luisa.santos","marcelo.henrique","maria.eduarda","maria.fernandes","mariana.simoes","mariana.vianna","marina.miranda","matheus.favorito","mayara.borges","michele.sates","michelle.carmo","milene.oliveira","natalia.maia","nathalia.martins","pamela.pereira","patricia.noguchi","paula.evelyn","pedro.maia","rafael.basilio","rafaela","remmo.martini","rhaller.duarte","ronara.guedes","samela.pereira","shayenne.penha","soraia.rodrigues","sthefanie.guedes","taina","tatiana.silva","thays.silva","thiago.rici","tiago.oliveira","vanessa.moreno","victor.silva","vitoria.oliveira","william.carvalho","wynara.xisto"].map(u=>`${u}@onfly.com.br`);
+
+const getFaixa = sf => sf>=8?{label:"Faixa 3",teto:5000}:sf>=5?{label:"Faixa 2",teto:3000}:{label:"Faixa 1",teto:2000};
+const faixaColor = l => l==="Faixa 3"?"#0A8A5E":l==="Faixa 2"?"#B07A00":"#CC2A2A";
+const scoreColor = v => v>=7.5?"#0A8A5E":v>=4?"#B07A00":"#CC2A2A";
+const pctColor   = v => v>=100?"#0A8A5E":v>=70?"#B07A00":"#CC2A2A";
+const fmtBRL     = v => (+v||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const fmtM       = v => v>=1e6?`R$ ${(v/1e6).toFixed(1)}M`:v>=1000?`R$ ${(v/1000).toFixed(0)}k`:fmtBRL(v);
+const fmtName    = e => e.split("@")[0].replace("."," ").replace(/\b\w/g,l=>l.toUpperCase());
+
+const PILLARS = [
+  {key:"score_satisfacao",   label:"Satisfação",   color:"#2563EB", icon:"◎"},
+  {key:"score_producao",     label:"Produção",     color:"#0A8A5E", icon:"◈"},
+  {key:"score_dilatacao",    label:"Dilatação",    color:"#B07A00", icon:"◆"},
+  {key:"score_rentabilidade",label:"Rentabilidade",color:"#7C3AED", icon:"◉"},
+];
+
+const MONTHS = ["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03"];
+const MLABELS = ["Jan/25","Fev/25","Mar/25","Abr/25","Mai/25","Jun/25","Jul/25","Ago/25","Set/25","Out/25","Nov/25","Dez/25","Jan/26","Fev/26","Mar/26"];
+const EMP_COLORS = {6022:"#2563EB",6417:"#0A8A5E",6475:"#B07A00",6670:"#7C3AED",7356:"#CC2A2A"};
+
+const GMV_RAW = [
+  {id:6022,ym:"2025-01",v:1781855},{id:6022,ym:"2025-02",v:1593917},{id:6022,ym:"2025-03",v:1457173},{id:6022,ym:"2025-04",v:1502266},{id:6022,ym:"2025-05",v:1538042},{id:6022,ym:"2025-06",v:1752567},{id:6022,ym:"2025-07",v:2001577},{id:6022,ym:"2025-08",v:2178642},{id:6022,ym:"2025-09",v:2133124},{id:6022,ym:"2025-10",v:1776091},{id:6022,ym:"2025-11",v:1171530},{id:6022,ym:"2025-12",v:783097},{id:6022,ym:"2026-01",v:2186906},{id:6022,ym:"2026-02",v:1998860},{id:6022,ym:"2026-03",v:2506694},
+  {id:6417,ym:"2025-01",v:1628732},{id:6417,ym:"2025-02",v:1778309},{id:6417,ym:"2025-03",v:1753371},{id:6417,ym:"2025-04",v:1841512},{id:6417,ym:"2025-05",v:1108120},{id:6417,ym:"2025-06",v:604102},{id:6417,ym:"2025-07",v:744552},{id:6417,ym:"2025-08",v:751752},{id:6417,ym:"2025-09",v:734362},{id:6417,ym:"2025-10",v:279770},{id:6417,ym:"2025-11",v:723053},{id:6417,ym:"2025-12",v:969096},{id:6417,ym:"2026-01",v:909940},{id:6417,ym:"2026-02",v:839637},{id:6417,ym:"2026-03",v:1097338},
+  {id:6475,ym:"2025-01",v:762745},{id:6475,ym:"2025-02",v:769994},{id:6475,ym:"2025-03",v:890162},{id:6475,ym:"2025-04",v:1128541},{id:6475,ym:"2025-05",v:1088396},{id:6475,ym:"2025-06",v:858709},{id:6475,ym:"2025-07",v:901378},{id:6475,ym:"2025-08",v:750565},{id:6475,ym:"2025-09",v:655160},{id:6475,ym:"2025-10",v:691722},{id:6475,ym:"2025-11",v:780176},{id:6475,ym:"2025-12",v:667262},{id:6475,ym:"2026-01",v:614263},{id:6475,ym:"2026-02",v:486708},{id:6475,ym:"2026-03",v:645642},
+  {id:6670,ym:"2025-01",v:3360},{id:6670,ym:"2025-07",v:58621},{id:6670,ym:"2025-08",v:231007},{id:6670,ym:"2025-09",v:250720},{id:6670,ym:"2025-10",v:381405},{id:6670,ym:"2025-11",v:428965},{id:6670,ym:"2025-12",v:429486},{id:6670,ym:"2026-01",v:357158},{id:6670,ym:"2026-02",v:278785},{id:6670,ym:"2026-03",v:415908},
+  {id:7356,ym:"2025-03",v:1344},{id:7356,ym:"2025-05",v:27655},{id:7356,ym:"2025-06",v:99666},{id:7356,ym:"2025-07",v:141395},{id:7356,ym:"2025-08",v:101777},{id:7356,ym:"2025-09",v:227638},{id:7356,ym:"2025-10",v:154932},{id:7356,ym:"2025-11",v:102187},{id:7356,ym:"2025-12",v:171394},{id:7356,ym:"2026-01",v:130783},{id:7356,ym:"2026-02",v:147128},{id:7356,ym:"2026-03",v:202719},
+];
+
+const GABRIELA = [
+  {id_onfly:6417,empresa_nome:"Helisul Taxi Aereo Ltda",          score_satisfacao:1.78,score_producao:10,score_dilatacao:3, score_rentabilidade:10.00,meta:2030219.05,realizado:1097337.52,cota_part:38.5},
+  {id_onfly:6475,empresa_nome:"MADERO INDUSTRIA E COMERCIO S.A.", score_satisfacao:7.37,score_producao:6, score_dilatacao:6, score_rentabilidade:10.00,meta:1030714.01,realizado:645115.36, cota_part:19.5},
+  {id_onfly:6670,empresa_nome:"Madero Eventos",                   score_satisfacao:3.00,score_producao:0, score_dilatacao:0, score_rentabilidade:10.00,meta:364822.12, realizado:415908.01, cota_part:6.9},
+  {id_onfly:7356,empresa_nome:"PTX TRIMBLE AGRICULTURA LTDA",     score_satisfacao:4.91,score_producao:4, score_dilatacao:0, score_rentabilidade:8.93, meta:148195.73, realizado:204826.02, cota_part:2.8},
+  {id_onfly:6022,empresa_nome:"AGCO",                             score_satisfacao:3.32,score_producao:0, score_dilatacao:0, score_rentabilidade:8.67, meta:1698869.99,realizado:2506694.44,cota_part:32.2},
+].map(r=>{
+  const sf=Math.round(((r.score_satisfacao+r.score_producao+r.score_dilatacao+r.score_rentabilidade)/4)*100)/100;
+  const pct=Math.round((r.realizado/r.meta)*1000)/10;
+  const f=getFaixa(sf);
+  const pot=Math.round(f.teto*r.cota_part/100*100)/100;
+  return{...r,score_final:sf,pct,faixa:f.label,teto:f.teto,potencial:pot,desbloqueada:pct>=100?pot:0};
+});
+
+
+const SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRPb1LU5munaaNXrUz2hCdgeUycwiQUT5U3biAkLychCmCafCi3Nraospz7CqYDpnswhAjmOuNJcDFe/pub?output=csv";
+
+// Parse CSV string into array of objects
+const parseCSV = (text) => {
+  const lines = text.trim().split("\n");
+  const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g,""));
+  return lines.slice(1).map(line => {
+    const vals = [];
+    let cur = "", inQ = false;
+    for (let i=0; i<line.length; i++) {
+      const c = line[i];
+      if (c==='"') { inQ=!inQ; }
+      else if (c==="," && !inQ) { vals.push(cur); cur=""; }
+      else { cur+=c; }
+    }
+    vals.push(cur);
+    const obj = {};
+    headers.forEach((h,i) => { obj[h] = (vals[i]||"").trim().replace(/^"|"$/g,""); });
+    return obj;
+  });
+};
+
+const FILTER_MONTHS = [
+  {ym:"2026-01",label:"Janeiro/2026",ano:2026,mes:1,dias:20,lastDay:"2026-01-31"},
+  {ym:"2026-02",label:"Fevereiro/2026",ano:2026,mes:2,dias:17,lastDay:"2026-02-28"},
+  {ym:"2026-03",label:"Março/2026",ano:2026,mes:3,dias:22,lastDay:"2026-03-31"},
+  {ym:"2026-04",label:"Abril/2026",ano:2026,mes:4,dias:19,lastDay:"2026-04-30"},
+];
+
+const buildQuery=(csm,ano,mes,dias,lastDay)=>{
+  const diasFimMes=new Date(ano,mes,0).getDate();
+  const mesAnterior=mes===1?12:mes-1;
+  const m3start=mes<=3?`${mes<=1?ano-1:ano}-${String(mes<=1?12-(2-mes):mes-3).padStart(2,"0")}-01`:`${ano}-${String(mes-3+1).padStart(2,"0")}-01`;
+  return `WITH hierarquia AS (SELECT id_onfly,name AS empresa_nome FROM \`dw-onfly-prd.cockpit.gold_companies\` WHERE status='active' AND cs_responsible_email='${csm}'),
+nps_3m AS (SELECT company_id AS id_onfly,SUM(IF(SAFE_CAST(scala AS INT64)>=9,1,0)) AS prom,SUM(IF(SAFE_CAST(scala AS INT64)<=6,1,0)) AS detr,COUNT(*) AS total FROM \`dw-onfly-prd.cockpit.gold_onfly_product_nps\` WHERE date_submitted BETWEEN '${m3start}' AND '${lastDay}' GROUP BY 1),
+nps_hist AS (SELECT company_id AS id_onfly,SUM(IF(SAFE_CAST(scala AS INT64)>=9,1,0)) AS prom,SUM(IF(SAFE_CAST(scala AS INT64)<=6,1,0)) AS detr,COUNT(*) AS total FROM \`dw-onfly-prd.cockpit.gold_onfly_product_nps\` GROUP BY 1),
+csat_3m AS (SELECT id_onfly,COUNT(nota) AS total,COUNTIF(nota>=4) AS prom FROM (SELECT SAFE_CAST(company_id AS INT64) AS id_onfly,SAFE_CAST(int_Nota AS INT64) AS nota FROM \`dw-onfly-prd.service.gold_blip_tickets\` WHERE date_Criado_em BETWEEN '${m3start}' AND '${lastDay}' UNION ALL SELECT SAFE_CAST(company_id AS INT64),IF(score_classificado='Promotor',5,3) FROM \`dw-onfly-prd.service.gold_hubspot_tickets\` WHERE date_created_at BETWEEN '${m3start}' AND '${lastDay}' UNION ALL SELECT SAFE_CAST(company_id AS INT64),SAFE_CAST(Nota AS INT64) FROM \`dw-onfly-prd.service.gold_req_off_tickets\` WHERE SAFE_CAST(Criado_em AS DATE) BETWEEN '${m3start}' AND '${lastDay}' UNION ALL SELECT SAFE_CAST(company_id AS INT64),SAFE_CAST(Nota AS INT64) FROM \`dw-onfly-prd.service.gold_genesys_tickets\` WHERE DATE(Criado_em) BETWEEN '${m3start}' AND '${lastDay}') WHERE id_onfly IS NOT NULL GROUP BY 1),
+csat_hist AS (SELECT id_onfly,COUNT(nota) AS total,COUNTIF(nota>=4) AS prom FROM (SELECT SAFE_CAST(company_id AS INT64) AS id_onfly,SAFE_CAST(int_Nota AS INT64) AS nota FROM \`dw-onfly-prd.service.gold_blip_tickets\` UNION ALL SELECT SAFE_CAST(company_id AS INT64),IF(score_classificado='Promotor',5,3) FROM \`dw-onfly-prd.service.gold_hubspot_tickets\` UNION ALL SELECT SAFE_CAST(company_id AS INT64),SAFE_CAST(Nota AS INT64) FROM \`dw-onfly-prd.service.gold_req_off_tickets\` UNION ALL SELECT SAFE_CAST(company_id AS INT64),SAFE_CAST(Nota AS INT64) FROM \`dw-onfly-prd.service.gold_genesys_tickets\`) WHERE id_onfly IS NOT NULL GROUP BY 1),
+cot AS (SELECT company_id AS id_onfly,SUM(IF(LOWER(type)='flight',total_quote,0)) AS qa,SUM(IF(LOWER(type)='hotel',total_quote,0)) AS qh FROM \`dw-onfly-prd.platform_onfly.gold_all_user_quotes\` WHERE EXTRACT(YEAR FROM date)=${ano} AND EXTRACT(MONTH FROM date)=${mes} GROUP BY 1),
+ra AS (SELECT company_id AS id_onfly,COUNT(DISTINCT protocol) AS qtd FROM \`dw-onfly-prd.platform_onfly.silver_onfly_old_flight_orders\` WHERE emitter_id=6385 AND EXTRACT(YEAR FROM purchase_date)=${ano} AND EXTRACT(MONTH FROM purchase_date)=${mes} GROUP BY 1),
+rh AS (SELECT company_id AS id_onfly,COUNT(DISTINCT protocol) AS qtd FROM \`dw-onfly-prd.platform_onfly.silver_onfly_old_hotel_orders\` WHERE emitter_id=6385 AND EXTRACT(YEAR FROM purchase_date)=${ano} AND EXTRACT(MONTH FROM purchase_date)=${mes} GROUP BY 1),
+mv AS (SELECT company_id AS id_onfly,SUM(IF(LOWER(type)='auto',total_amount_currency_brl,0)) AS ga,SUM(IF(LOWER(type)='auto' AND UPPER(rental_company) LIKE '%MOVIDA%',total_amount_currency_brl,0)) AS gm FROM \`dw-onfly-prd.platform_onfly.silver_onfly_old_all_emissions\` WHERE status=2 AND EXTRACT(YEAR FROM created_at)=${ano} AND EXTRACT(MONTH FROM created_at)=${mes} GROUP BY 1),
+hb AS (SELECT company_id,is_active_integration FROM \`dw-onfly-prd.cockpit.gold_history_companies_scale_up\` WHERE EXTRACT(YEAR FROM extraction_date)=${ano} AND EXTRACT(MONTH FROM extraction_date)=${mesAnterior} QUALIFY ROW_NUMBER() OVER(PARTITION BY company_id ORDER BY extraction_date DESC)=1),
+ce AS (SELECT id_onfly,usou_expense,usou_banking FROM \`dw-onfly-prd.customer_success.gold_used_expenditures_and_banking\`),
+oh AS (SELECT gco.id_onfly,COUNT(DISTINCT CASE WHEN fu.status='Activated' AND DATE(fu.activated_at)<='${lastDay}' AND (fu.inactivated_at IS NULL OR DATE(fu.inactivated_at)>'${lastDay}') THEN fu.id END) AS atv,COUNT(DISTINCT fu.id) AS tb FROM \`dw-onfly-prd.onhappy.gold_dim_companies\` gco LEFT JOIN \`dw-onfly-prd.onhappy.silver_onhappy_users\` fu ON fu.company_id=gco.id GROUP BY 1),
+adoc AS (SELECT company_id AS id_onfly,COUNT(DISTINCT id) AS total,COUNT(DISTINCT IF(created_by=6385,id,NULL)) AS sistema FROM \`dw-onfly-prd.platform_onfly.silver_onfly_old_all_emissions\` WHERE status=2 AND EXTRACT(YEAR FROM created_at)=${ano} AND EXTRACT(MONTH FROM created_at)=${mes} GROUP BY 1),
+tabela_calendario AS (SELECT ano_ref,mes_ref,qtd_dias FROM UNNEST([STRUCT(2025 AS ano_ref,1 AS mes_ref,22.0 AS qtd_dias),STRUCT(2025,2,20.0),STRUCT(2025,3,19.0),STRUCT(2025,4,21.0),STRUCT(2025,5,21.0),STRUCT(2025,6,20.0),STRUCT(2025,7,23.0),STRUCT(2025,8,21.0),STRUCT(2025,9,22.0),STRUCT(2025,10,23.0),STRUCT(2025,11,19.0),STRUCT(2025,12,22.0),STRUCT(2026,1,20.0),STRUCT(2026,2,17.0),STRUCT(2026,3,22.0),STRUCT(2026,4,19.0),STRUCT(2026,5,20.0),STRUCT(2026,6,17.0),STRUCT(2026,7,19.5),STRUCT(2026,8,21.0),STRUCT(2026,9,21.0),STRUCT(2026,10,21.0),STRUCT(2026,11,19.0),STRUCT(2026,12,20.0)])),
+gm AS (SELECT e.company_id,EXTRACT(YEAR FROM e.created_at) AS ano,EXTRACT(MONTH FROM e.created_at) AS mes,SUM(e.total_amount_currency_brl) AS gmv,SAFE_DIVIDE(SUM(e.total_amount_currency_brl),ANY_VALUE(c.qtd_dias)) AS ritmo FROM \`dw-onfly-prd.platform_onfly.silver_onfly_old_all_emissions\` e JOIN tabela_calendario c ON c.mes_ref=EXTRACT(MONTH FROM e.created_at) AND c.ano_ref=EXTRACT(YEAR FROM e.created_at) WHERE e.status=2 AND EXTRACT(YEAR FROM e.created_at) IN(2025,${ano}) GROUP BY 1,2,3),
+rpm AS (SELECT company_id,ritmo AS re FROM gm QUALIFY ROW_NUMBER() OVER(PARTITION BY company_id ORDER BY ano,mes)=1),
+mc AS (SELECT h.id_onfly,COALESCE(ro.ritmo,0) AS ro,COALESCE(req.ritmo,0) AS req,COALESCE(pm.re,0) AS rpm,COALESCE(r26.gmv,0) AS real FROM hierarquia h LEFT JOIN gm ro ON ro.company_id=h.id_onfly AND ro.ano=2025 AND ro.mes=10 LEFT JOIN gm req ON req.company_id=h.id_onfly AND req.ano=2025 AND req.mes=${mes} LEFT JOIN gm r26 ON r26.company_id=h.id_onfly AND r26.ano=${ano} AND r26.mes=${mes} LEFT JOIN rpm pm ON pm.company_id=h.id_onfly),
+mf AS (SELECT id_onfly,real AS realizado,CASE WHEN ro>0 OR req>0 THEN GREATEST(ro,req)*${dias}.0 ELSE rpm*${dias}.0 END AS meta FROM mc),
+hierarquia_grupo AS (SELECT id_onfly,CASE WHEN group_id IS NULL OR CAST(group_id AS INT64)=0 THEN id_onfly ELSE CAST(group_id AS INT64) END AS id_mae FROM \`dw-onfly-prd.cockpit.gold_companies\` WHERE status='active'),
+scores_base AS (
+SELECT h.id_onfly,h.empresa_nome,
+ROUND((((COALESCE(IF(n.total>0,SAFE_DIVIDE(n.prom-n.detr,n.total)*100,NULL),IF(nh.total>0,SAFE_DIVIDE(nh.prom-nh.detr,nh.total)*100,NULL),47.37)+100)/2)*6+COALESCE(IF(cs.total>0,SAFE_DIVIDE(cs.prom,cs.total)*100,NULL),IF(ch.total>0,SAFE_DIVIDE(ch.prom,ch.total)*100,NULL),80.0)*4)/10/10,2) AS score_satisfacao,
+ROUND((IF(SAFE_DIVIDE(COALESCE(ra.qtd,0),COALESCE(c.qa,0))>=0.15,4,0))+(IF(SAFE_DIVIDE(COALESCE(rh.qtd,0),COALESCE(c.qh,0))>=0.30,4,0))+(IF(SAFE_DIVIDE(COALESCE(mv.gm,0),COALESCE(mv.ga,0))>=0.50,2,0)),2) AS score_producao,
+ROUND((IF(COALESCE(ce.usou_expense,0)=1 OR COALESCE(ce.usou_banking,0)=1,6,0))+COALESCE(IF(hb.is_active_integration=1,3,0),0)+IF(SAFE_DIVIDE(oh.atv,oh.tb)>=0.3,1,0),2) AS score_dilatacao,
+ROUND(LEAST(SAFE_DIVIDE(COALESCE(adoc.sistema,0),COALESCE(adoc.total,0))/0.90,1.0)*10,2) AS score_rentabilidade,
+ROUND(mf.meta,2) AS meta,ROUND(mf.realizado,2) AS realizado,
+ROUND(SAFE_DIVIDE(mf.meta,SUM(mf.meta) OVER())*100,2) AS cota_part
+FROM hierarquia h
+LEFT JOIN nps_3m n ON n.id_onfly=h.id_onfly LEFT JOIN nps_hist nh ON nh.id_onfly=h.id_onfly
+LEFT JOIN csat_3m cs ON cs.id_onfly=h.id_onfly LEFT JOIN csat_hist ch ON ch.id_onfly=h.id_onfly
+LEFT JOIN cot c ON c.id_onfly=h.id_onfly LEFT JOIN ra ON ra.id_onfly=h.id_onfly
+LEFT JOIN rh ON rh.id_onfly=h.id_onfly LEFT JOIN mv ON mv.id_onfly=h.id_onfly
+LEFT JOIN adoc ON adoc.id_onfly=h.id_onfly LEFT JOIN hb ON hb.company_id=h.id_onfly
+LEFT JOIN ce ON ce.id_onfly=h.id_onfly LEFT JOIN oh ON oh.id_onfly=h.id_onfly
+LEFT JOIN mf ON mf.id_onfly=h.id_onfly),
+score_mae AS (
+SELECT hg.id_mae,
+ROUND((sb.score_satisfacao+sb.score_producao+sb.score_dilatacao+sb.score_rentabilidade)/4.0,2) AS score_final_mae
+FROM scores_base sb
+INNER JOIN hierarquia_grupo hg ON hg.id_onfly=sb.id_onfly
+WHERE hg.id_onfly=hg.id_mae)
+dias_uteis_mes AS (
+SELECT
+  COUNTIF(EXTRACT(DAYOFWEEK FROM d) NOT IN (1,7)) AS dias_uteis_decorridos
+FROM UNNEST(GENERATE_DATE_ARRAY(DATE(${ano},${mes},1), LEAST(DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY), DATE(${ano},${mes},${diasFimMes})))) AS d
+),
+gmv_atual AS (
+SELECT company_id AS id_onfly, SUM(total_amount_currency_brl) AS gmv_acumulado
+FROM \`dw-onfly-prd.platform_onfly.silver_onfly_old_all_emissions\`
+WHERE status=2 AND EXTRACT(YEAR FROM created_at)=${ano} AND EXTRACT(MONTH FROM created_at)=${mes}
+GROUP BY 1)
+SELECT sb.id_onfly,sb.empresa_nome,
+sb.score_satisfacao,sb.score_producao,sb.score_dilatacao,sb.score_rentabilidade,
+sb.meta,sb.realizado,sb.cota_part,
+hg.id_mae,
+IF(hg.id_onfly=hg.id_mae,'Mae','Filha') AS papel_hierarquia,
+COALESCE(sm.score_final_mae,ROUND((sb.score_satisfacao+sb.score_producao+sb.score_dilatacao+sb.score_rentabilidade)/4.0,2)) AS score_final,
+COALESCE(ga.gmv_acumulado,0) AS gmv_acumulado,
+du.dias_uteis_decorridos,
+GREATEST(${dias}.0 - du.dias_uteis_decorridos, 0) AS dias_uteis_restantes,
+ROUND(SAFE_DIVIDE(COALESCE(ga.gmv_acumulado,0), NULLIF(du.dias_uteis_decorridos,0)),2) AS ritmo_diario,
+ROUND(COALESCE(ga.gmv_acumulado,0) + SAFE_DIVIDE(COALESCE(ga.gmv_acumulado,0), NULLIF(du.dias_uteis_decorridos,0)) * GREATEST(${dias}.0 - du.dias_uteis_decorridos,0),2) AS projecao_gmv
+FROM scores_base sb
+INNER JOIN hierarquia_grupo hg ON hg.id_onfly=sb.id_onfly
+LEFT JOIN score_mae sm ON sm.id_mae=hg.id_mae
+CROSS JOIN dias_uteis_mes du
+LEFT JOIN gmv_atual ga ON ga.id_onfly=sb.id_onfly
+ORDER BY score_final DESC`;
+};
+
+const enrich=rows=>rows.map(r=>{
+  // score_final já vem do BQ com lógica mãe/filha aplicada
+  const sf=+r.score_final||Math.round(((+r.score_satisfacao+ +r.score_producao+ +r.score_dilatacao+ +r.score_rentabilidade)/4)*100)/100;
+  const pct=+r.meta?Math.round((+r.realizado/+r.meta)*1000)/10:0;
+  const f=getFaixa(sf);
+  const pot=Math.round(f.teto*(+r.cota_part||0)/100*100)/100;
+  return{...r,score_final:sf,pct,faixa:f.label,teto:f.teto,potencial:pot,desbloqueada:pct>=100?pot:0,
+    score_satisfacao:+r.score_satisfacao,score_producao:+r.score_producao,
+    score_dilatacao:+r.score_dilatacao,score_rentabilidade:+r.score_rentabilidade,
+    meta:+r.meta,realizado:+r.realizado,cota_part:+r.cota_part,
+    papel_hierarquia:r.papel_hierarquia||'Mae',
+    gmv_acumulado:+r.gmv_acumulado||0,
+    dias_uteis_decorridos:+r.dias_uteis_decorridos||0,
+    dias_uteis_restantes:+r.dias_uteis_restantes||0,
+    ritmo_diario:+r.ritmo_diario||0,
+    projecao_gmv:+r.projecao_gmv||0};
+});
+
+const Spark=({data,color="#2563EB"})=>{
+  const d=data.filter(v=>v>0);
+  if(d.length<2) return <span style={{fontSize:10,color:"#9CA3AF"}}>— —</span>;
+  const mn=Math.min(...d),mx=Math.max(...d),r=mx-mn||1,W=72,H=22;
+  const pts=d.map((v,i)=>`${(i/(d.length-1))*W},${H-((v-mn)/r)*(H-4)-2}`).join(" ");
+  return(
+    <svg width={W} height={H} style={{opacity:0.85}}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round"/>
+    </svg>
+  );
+};
+
+const ScoreRing=({value,color,size=44})=>{
+  const r=size/2-4,circ=2*Math.PI*r,pct=Math.min(1,value/10);
+  return(
+    <svg width={size} height={size}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="#E5E7EB" strokeWidth="3"/>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="3"
+        strokeDasharray={`${pct*circ} ${circ}`} strokeLinecap="round"
+        transform={`rotate(-90 ${size/2} ${size/2})`}/>
+      <text x={size/2} y={size/2+1} textAnchor="middle" dominantBaseline="middle" fontSize={size>40?11:9} fontWeight="600" fill={color}>{value.toFixed(1)}</text>
+    </svg>
+  );
+};
+
+const ProgressBar=({value,color,h=4})=>(
+  <div style={{background:"#F3F4F6",borderRadius:99,height:h,overflow:"hidden"}}>
+    <div style={{width:`${Math.min(100,(value/10)*100)}%`,height:"100%",background:color,borderRadius:99}}/>
+  </div>
+);
+
+const PctBar=({pct,h=5})=>(
+  <div style={{background:"#F3F4F6",borderRadius:99,height:h,overflow:"hidden"}}>
+    <div style={{width:`${Math.min(100,pct)}%`,height:"100%",background:pctColor(pct),borderRadius:99}}/>
+  </div>
+);
+
+const StatCard=({label,value,color,accent})=>(
+  <div style={{background:"#fff",border:"1px solid #E5E7EB",borderRadius:12,padding:"14px 16px",position:"relative",overflow:"hidden",boxShadow:"0 1px 3px rgba(0,0,0,0.04)"}}>
+    {accent&&<div style={{position:"absolute",top:0,left:0,right:0,height:2,background:accent}}/>}
+    <p style={{margin:0,fontSize:11,fontWeight:500,color:"#9CA3AF",letterSpacing:"0.06em",textTransform:"uppercase"}}>{label}</p>
+    <p style={{margin:"6px 0 0",fontSize:20,fontWeight:700,color:color||"#111827",letterSpacing:"-0.02em"}}>{value}</p>
+  </div>
+);
+
+const TABS=[
+  {k:"overview",   l:"Visão Geral"},
+  {k:"scores",     l:"Scores"},
+  {k:"metas",      l:"Meta & GMV"},
+  {k:"projecao",   l:"Projeção"},
+  {k:"remuneracao",l:"Remuneração"},
+];
+
+function App() {
+  const [tab,setTab]             = useState("overview");
+  const [csm,setCsm]             = useState("gabriela.bastos@onfly.com.br");
+  const [mesFilter,setMesFilter] = useState("2026-03");
+  const [data,setData]           = useState(GABRIELA);
+  const [gmv,setGmv]             = useState(GMV_RAW);
+  const [loading,setLoading]     = useState(false);
+  const [error,setError]         = useState(null);
+  const [loaded,setLoaded]       = useState(true);
+  const [search,setSearch]       = useState("");
+  const [sk,setSk]               = useState("score_final");
+  const [sd,setSd]               = useState(-1);
+  const [sel,setSel]             = useState(null);
+
+  const tgl=k=>{if(sk===k)setSd(d=>d*-1);else{setSk(k);setSd(-1);}};
+  const si=k=>sk===k?(sd===-1?"↓":"↑"):"";
+
+  const load=useCallback(async(email,ym)=>{
+    const mf=FILTER_MONTHS.find(m=>m.ym===(ym||mesFilter))||FILTER_MONTHS[2];
+    // Demo: Gabriela Marco/26 usa dados hardcoded
+    if(email==="gabriela.bastos@onfly.com.br"&&mf.ym==="2026-03"){
+      setData(GABRIELA);setGmv(GMV_RAW);setLoaded(true);setError(null);return;
+    }
+    setLoading(true);setError(null);setLoaded(false);setSel(null);
+    try{
+      const res = await fetch(SHEETS_CSV_URL);
+      if(!res.ok) throw new Error("Erro ao carregar planilha: "+res.status);
+      const text = await res.text();
+      const all  = parseCSV(text);
+      // Filtra por CSM e mês
+      const filtered = all.filter(r =>
+        r.cs_responsible_email === email &&
+        r.yearmonth === mf.ym
+      );
+      if(filtered.length===0) throw new Error("Nenhum dado encontrado para "+email+" em "+mf.label);
+      setData(enrich(filtered));
+      setGmv([]);setLoaded(true);
+    }catch(e){setError(e.message);}
+    finally{setLoading(false);}
+  },[mesFilter]);
+
+  const rows=[...data]
+    .filter(r=>r.empresa_nome?.toLowerCase().includes(search.toLowerCase()))
+    .sort((a,b)=>((b[sk]??0)-(a[sk]??0))*sd);
+
+  const tMeta=data.reduce((s,r)=>s+r.meta,0);
+  const tReal=data.reduce((s,r)=>s+r.realizado,0);
+  const tPct=tMeta?Math.round((tReal/tMeta)*1000)/10:0;
+  const tPot=data.reduce((s,r)=>s+r.potencial,0);
+  const tDesbloq=data.reduce((s,r)=>s+r.desbloqueada,0);
+  const avg=k=>data.length?(data.reduce((s,r)=>s+(+r[k]||0),0)/data.length).toFixed(2):"—";
+  const gmvByMonth=MONTHS.map(m=>({ym:m,v:gmv.filter(r=>r.ym===m).reduce((s,r)=>s+r.v,0)}));
+
+  const S={
+    root:{minHeight:"100vh",background:"#F8F9FB",color:"#111827",fontFamily:"'Outfit',sans-serif",padding:"0 0 40px"},
+    hdr:{background:"#fff",borderBottom:"1px solid #E5E7EB",padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8,position:"sticky",top:0,zIndex:100,boxShadow:"0 1px 4px rgba(0,0,0,0.05)"},
+    sel:{background:"#F3F4F6",border:"1px solid #D1D5DB",borderRadius:8,color:"#374151",fontSize:12,padding:"6px 10px",cursor:"pointer",outline:"none"},
+    btn:{background:"linear-gradient(135deg,#2563EB,#7C3AED)",border:"none",borderRadius:8,color:"#fff",fontSize:12,fontWeight:600,padding:"6px 14px",cursor:"pointer"},
+    tabs:{display:"flex",gap:2,padding:"12px 16px 0",borderBottom:"1px solid #E5E7EB"},
+    tabBtn:a=>({background:"transparent",border:"none",color:a?"#111827":"#9CA3AF",fontSize:12,fontWeight:a?600:400,padding:"7px 12px",cursor:"pointer",borderBottom:a?"2px solid #2563EB":"2px solid transparent",marginBottom:-1}),
+    body:{padding:"0 16px"},
+    grid:c=>({display:"grid",gridTemplateColumns:`repeat(auto-fit,minmax(${c||120}px,1fr))`,gap:8,marginBottom:16}),
+    st:{fontSize:10,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"#9CA3AF",marginBottom:8},
+    wrap:{border:"1px solid #E5E7EB",borderRadius:12,overflow:"hidden",background:"#fff"},
+    tbl:{width:"100%",borderCollapse:"collapse",fontSize:12},
+    th:a=>({padding:"9px 10px",textAlign:"center",fontWeight:600,fontSize:10,letterSpacing:"0.04em",textTransform:"uppercase",color:a?"#111827":"#6B7280",cursor:"pointer",background:"#F9FAFB",userSelect:"none",whiteSpace:"nowrap"}),
+    thL:{padding:"9px 12px",textAlign:"left",fontWeight:600,fontSize:10,letterSpacing:"0.04em",textTransform:"uppercase",color:"#6B7280",background:"#F9FAFB"},
+    td:{padding:"10px 10px",borderTop:"1px solid #F3F4F6",verticalAlign:"middle",textAlign:"center"},
+    tdL:{padding:"10px 12px",borderTop:"1px solid #F3F4F6",verticalAlign:"middle"},
+    inp:{width:"100%",background:"#fff",border:"1px solid #D1D5DB",borderRadius:8,color:"#111827",fontSize:12,padding:"8px 12px",outline:"none",marginBottom:12,boxSizing:"border-box"},
+    badge:c=>({display:"inline-block",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:99,background:`${c}18`,color:c,border:`1px solid ${c}44`}),
+    tf:{background:"#F9FAFB",fontWeight:700},
+  };
+
+  return(
+    <div style={S.root}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');`}</style>
+
+      <div style={S.hdr}>
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:26,height:26,borderRadius:6,background:"linear-gradient(135deg,#2563EB,#7C3AED)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:800,color:"#fff"}}>✦</div>
+          <div>
+            <p style={{margin:0,fontSize:14,fontWeight:700,color:"#111827"}}>{loaded?fmtName(csm):"CSM Dashboard"}</p>
+            <p style={{margin:0,fontSize:11,color:"#9CA3AF"}}>{(FILTER_MONTHS.find(m=>m.ym===mesFilter)||FILTER_MONTHS[2]).label}{loaded?` · ${data.length} empresas`:""}</p>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <select value={mesFilter} onChange={e=>{setMesFilter(e.target.value);setLoaded(false);}} style={{...S.sel,fontWeight:600}}>
+            {FILTER_MONTHS.map(m=><option key={m.ym} value={m.ym}>{m.label}</option>)}
+          </select>
+          <select value={csm} onChange={e=>setCsm(e.target.value)} style={S.sel}>
+            {CSMS.map(c=><option key={c} value={c}>{c.split("@")[0]}</option>)}
+          </select>
+          <button onClick={()=>load(csm,mesFilter)} disabled={loading} style={{...S.btn,opacity:loading?0.5:1}}>
+            {loading?"Carregando…":loaded?"↺ Atualizar":"↗ Carregar"}
+          </button>
+        </div>
+      </div>
+
+      {error&&<div style={{margin:"12px 16px",padding:"10px 14px",background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,color:"#DC2626",fontSize:12}}>⚠ {error}</div>}
+      {loading&&<div style={{textAlign:"center",padding:"3rem 0",color:"#9CA3AF",fontSize:12}}>Consultando BigQuery…</div>}
+      {!loading&&!loaded&&!error&&<div style={{textAlign:"center",padding:"3rem 0",color:"#9CA3AF",fontSize:12}}>Selecione um CSM e mês, depois clique em Carregar</div>}
+
+      {loaded&&!loading&&(<>
+        <div style={S.tabs}>
+          {TABS.map(t=>(
+            <button key={t.k} onClick={()=>{setTab(t.k);setSel(null);}} style={S.tabBtn(tab===t.k)}>{t.l}</button>
+          ))}
+        </div>
+
+        <div style={S.body}>
+          <div style={{height:16}}/>
+
+          {tab==="overview"&&(<>
+            <div style={S.grid(120)}>
+              <StatCard label="Score médio"       value={avg("score_final")}  color={scoreColor(parseFloat(avg("score_final")))} accent="#2563EB"/>
+              <StatCard label="GMV realizado"     value={fmtM(tReal)}         accent="#0A8A5E"/>
+              <StatCard label="Atingimento"       value={`${tPct}%`}          color={pctColor(tPct)} accent={pctColor(tPct)}/>
+              <StatCard label="Rem. desbloqueada" value={fmtBRL(tDesbloq)}    color="#0A8A5E" accent="#0A8A5E"/>
+              <StatCard label="Rem. potencial"    value={fmtBRL(tPot)}        accent="#7C3AED"/>
+            </div>
+
+            <p style={S.st}>Ranking por score final</p>
+            <div style={S.wrap}>
+              <div style={{display:"flex",alignItems:"center",gap:12,padding:"7px 14px",background:"#F9FAFB",borderBottom:"1px solid #E5E7EB"}}>
+                <span style={{minWidth:16}}/>
+                <div style={{flex:1,fontSize:10,fontWeight:600,color:"#6B7280",letterSpacing:"0.05em",textTransform:"uppercase"}}>Empresa</div>
+                <div style={{fontSize:10,fontWeight:600,color:"#6B7280",letterSpacing:"0.05em",textTransform:"uppercase",minWidth:80,textAlign:"center"}}>Histórico GMV</div>
+                <div style={{fontSize:10,fontWeight:600,color:"#6B7280",letterSpacing:"0.05em",textTransform:"uppercase",minWidth:68,textAlign:"center"}}>Score</div>
+              </div>
+              {[...data].sort((a,b)=>b.score_final-a.score_final).map((r,i)=>(
+                <div key={r.id_onfly} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderTop:"1px solid #F3F4F6"}}>
+                  <span style={{fontSize:10,fontWeight:700,color:"#D1D5DB",minWidth:16}}>#{i+1}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                      <p style={{margin:0,fontSize:12,fontWeight:500,color:"#111827",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.empresa_nome}</p>
+                      {r.papel_hierarquia==="Filha"&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:99,background:"#EDE9FE",color:"#7C3AED",border:"1px solid #DDD6FE",flexShrink:0}}>Grupo</span>}
+                      {r.papel_hierarquia==="Mae"&&data.some(x=>x.papel_hierarquia==="Filha"&&+x.id_mae===+r.id_onfly)&&<span style={{fontSize:9,fontWeight:700,padding:"1px 5px",borderRadius:99,background:"#DBEAFE",color:"#1D4ED8",border:"1px solid #BFDBFE",flexShrink:0}}>Matriz</span>}
+                    </div>
+                    <div style={{display:"flex",gap:8,marginTop:2,flexWrap:"wrap"}}>
+                      {PILLARS.map(p=>(
+                        <span key={p.key} style={{fontSize:10,color:"#9CA3AF"}}>
+                          {p.icon} <span style={{color:p.color,fontWeight:600}}>{(+r[p.key]).toFixed(1)}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <Spark data={gmv.filter(g=>g.id===r.id_onfly).sort((a,b)=>a.ym.localeCompare(b.ym)).map(g=>g.v)} color={EMP_COLORS[r.id_onfly]||"#888"}/>
+                  <div style={{textAlign:"right",minWidth:68}}>
+                    <ScoreRing value={r.score_final} color={scoreColor(r.score_final)} size={42}/>
+                    <span style={S.badge(faixaColor(r.faixa))}>{r.faixa}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {gmvByMonth.some(m=>m.v>0)&&(<>
+              <div style={{height:20}}/>
+              <p style={S.st}>GMV total da carteira · 2025–2026</p>
+              <div style={{...S.wrap,padding:"14px 14px 6px"}}>
+                {(()=>{
+                  const mx=Math.max(...gmvByMonth.map(x=>x.v))||1;
+                  return(
+                    <svg width="100%" viewBox="0 0 500 140" style={{overflow:"visible"}}>
+                      {gmvByMonth.map((m,i)=>{
+                        const bh=Math.round((m.v/mx)*108);
+                        const x=4+i*(496/15);
+                        const isRecent=MONTHS.indexOf(m.ym)>=12;
+                        const label=m.v>=1e6?`${(m.v/1e6).toFixed(1)}M`:m.v>=1000?`${(m.v/1000).toFixed(0)}k`:"";
+                        return(<g key={m.ym}>
+                          <rect x={x} y={118-bh} width={24} height={bh} fill={isRecent?"#2563EB":"#BFDBFE"} rx="3"/>
+                          {m.v>0?<text x={x+12} y={118-bh-3} textAnchor="middle" fontSize="6" fontWeight="600" fill={isRecent?"#2563EB":"#93C5FD"}>{label}</text>:null}
+                          {i%3===0?<text x={x+12} y={130} textAnchor="middle" fontSize="7" fill="#9CA3AF">{MLABELS[i]}</text>:null}
+                        </g>);
+                      })}
+                    </svg>
+                  );
+                })()}
+              </div>
+            </>)}
+          </>)}
+
+          {tab==="scores"&&(<>
+            <div style={S.grid(110)}>
+              {[{label:"Score Final",key:"score_final",color:"#111827"},...PILLARS].map(m=>(
+                <StatCard key={m.key} label={m.label} value={avg(m.key)} color={scoreColor(parseFloat(avg(m.key)))} accent={m.color||"#2563EB"}/>
+              ))}
+            </div>
+            <input placeholder="Buscar empresa…" value={search} onChange={e=>setSearch(e.target.value)} style={S.inp}/>
+            <div style={S.wrap}>
+              <table style={S.tbl}>
+                <thead>
+                  <tr>
+                    <th style={{...S.thL,width:"28%"}}>Empresa</th>
+                    {PILLARS.map(p=><th key={p.key} onClick={()=>tgl(p.key)} style={S.th(sk===p.key)}>{p.icon} {p.label} {si(p.key)}</th>)}
+                    <th onClick={()=>tgl("score_final")} style={S.th(sk==="score_final")}>Final {si("score_final")}</th>
+                  </tr>
+                </thead>
+                <tbody>{rows.map(r=>(
+                  <tr key={r.id_onfly} onClick={()=>setSel(sel?.id_onfly===r.id_onfly?null:r)}
+                    style={{cursor:"pointer",background:sel?.id_onfly===r.id_onfly?"#EFF6FF":"transparent"}}>
+                    <td style={S.tdL}>
+                      <span style={{fontSize:10,color:"#9CA3AF",display:"block"}}>#{r.id_onfly}</span>
+                      <span style={{color:"#111827",fontWeight:500}}>{r.empresa_nome.length>28?r.empresa_nome.slice(0,28)+"…":r.empresa_nome}</span>
+                    </td>
+                    {PILLARS.map(p=>(
+                      <td key={p.key} style={S.td}>
+                        <span style={{fontWeight:600,color:scoreColor(r[p.key]),fontSize:12}}>{(+r[p.key]).toFixed(1)}</span>
+                        <ProgressBar value={+r[p.key]} color={p.color} h={3}/>
+                      </td>
+                    ))}
+                    <td style={S.td}><ScoreRing value={r.score_final} color={scoreColor(r.score_final)} size={36}/></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+            {sel&&(
+              <div style={{marginTop:12,border:"1px solid #BFDBFE",borderRadius:12,padding:"14px 16px",background:"#EFF6FF"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+                  <div>
+                    <p style={{margin:0,fontWeight:600,fontSize:13,color:"#111827"}}>{sel.empresa_nome}</p>
+                    <p style={{margin:"2px 0 0",fontSize:11,color:"#6B7280"}}>Score Final: <strong style={{color:scoreColor(sel.score_final)}}>{sel.score_final.toFixed(2)}</strong> · {sel.faixa}</p>
+                  </div>
+                  <button onClick={()=>setSel(null)} style={{background:"#F3F4F6",border:"1px solid #E5E7EB",color:"#6B7280",borderRadius:6,padding:"3px 8px",cursor:"pointer",fontSize:11}}>✕</button>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8}}>
+                  {PILLARS.map(p=>(
+                    <div key={p.key} style={{background:"#F9FAFB",border:"1px solid #E5E7EB",borderRadius:10,padding:"10px 12px"}}>
+                      <p style={{margin:0,fontSize:10,color:"#6B7280",textTransform:"uppercase",letterSpacing:"0.05em"}}>{p.icon} {p.label}</p>
+                      <p style={{margin:"6px 0 4px",fontSize:22,fontWeight:700,color:scoreColor(sel[p.key])}}>{(+sel[p.key]).toFixed(2)}</p>
+                      <ProgressBar value={+sel[p.key]} color={p.color}/>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>)}
+
+          {tab==="metas"&&(<>
+            <div style={S.grid(120)}>
+              <StatCard label="Meta total"        value={fmtBRL(tMeta)} accent="#2563EB"/>
+              <StatCard label="Realizado"          value={fmtBRL(tReal)} accent="#0A8A5E"/>
+              <StatCard label="Atingimento"        value={`${tPct}%`}    color={pctColor(tPct)} accent={pctColor(tPct)}/>
+              <StatCard label="Empresas na meta"   value={`${data.filter(r=>r.pct>=100).length} / ${data.length}`} accent="#F5A623"/>
+            </div>
+            <input placeholder="Buscar empresa…" value={search} onChange={e=>setSearch(e.target.value)} style={S.inp}/>
+            <div style={S.wrap}>
+              <table style={S.tbl}>
+                <thead>
+                  <tr>
+                    <th style={{...S.thL,width:"28%"}}>Empresa</th>
+                    <th onClick={()=>tgl("meta")}      style={S.th(sk==="meta")}>Meta {si("meta")}</th>
+                    <th onClick={()=>tgl("realizado")} style={S.th(sk==="realizado")}>Realizado {si("realizado")}</th>
+                    <th onClick={()=>tgl("pct")}       style={{...S.th(sk==="pct"),minWidth:100}}>Atingimento {si("pct")}</th>
+                    <th style={S.th(false)}>Cota Part</th>
+                  </tr>
+                </thead>
+                <tbody>{rows.map(r=>(
+                  <tr key={r.id_onfly}>
+                    <td style={S.tdL}>
+                      <span style={{fontSize:10,color:"#9CA3AF",display:"block"}}>#{r.id_onfly}</span>
+                      <span style={{color:"#111827",fontWeight:500}}>{r.empresa_nome.length>28?r.empresa_nome.slice(0,28)+"…":r.empresa_nome}</span>
+                    </td>
+                    <td style={{...S.td,color:"#6B7280",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(r.meta)}</td>
+                    <td style={{...S.td,fontWeight:600,color:"#111827",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(r.realizado)}</td>
+                    <td style={S.td}>
+                      <span style={{fontWeight:700,color:pctColor(r.pct),display:"block",marginBottom:3}}>{r.pct}%</span>
+                      <PctBar pct={r.pct}/>
+                    </td>
+                    <td style={{...S.td,color:"#9CA3AF"}}>{r.cota_part}%</td>
+                  </tr>
+                ))}</tbody>
+                <tfoot>
+                  <tr style={S.tf}>
+                    <td style={{...S.tdL,color:"#111827",fontSize:11}}>TOTAL</td>
+                    <td style={{...S.td,color:"#6B7280",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(tMeta)}</td>
+                    <td style={{...S.td,fontWeight:700,color:"#111827",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(tReal)}</td>
+                    <td style={S.td}><span style={{fontWeight:700,color:pctColor(tPct),display:"block",marginBottom:3}}>{tPct}%</span><PctBar pct={tPct}/></td>
+                    <td style={S.td}/>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </>)}
+
+
+          {tab==="projecao"&&(<>
+            {(()=>{
+              const du=rows[0]?.dias_uteis_decorridos||0;
+              const dr=rows[0]?.dias_uteis_restantes||0;
+              const tProj=rows.reduce((s,r)=>s+r.projecao_gmv,0);
+              const tRitmo=rows.reduce((s,r)=>s+r.ritmo_diario,0);
+              const tAcum=rows.reduce((s,r)=>s+r.gmv_acumulado,0);
+              return(<>
+                <div style={S.grid(120)}>
+                  <StatCard label="Dias úteis decorridos" value={`${du} dias`} accent="#2563EB"/>
+                  <StatCard label="Dias úteis restantes"  value={`${dr} dias`} accent="#F5A623"/>
+                  <StatCard label="GMV acumulado"         value={fmtM(tAcum)} accent="#0A8A5E"/>
+                  <StatCard label="Ritmo diário total"    value={fmtM(tRitmo)} accent="#7C3AED"/>
+                  <StatCard label="Projeção total"        value={fmtM(tProj)} color={pctColor((tProj/tMeta)*100)} accent={pctColor((tProj/tMeta)*100)}/>
+                  <StatCard label="% projeção vs meta"    value={tMeta?`${Math.round((tProj/tMeta)*100)}%`:"—"} color={pctColor((tProj/tMeta)*100)} accent={pctColor((tProj/tMeta)*100)}/>
+                </div>
+                <input placeholder="Buscar empresa…" value={search} onChange={e=>setSearch(e.target.value)} style={S.inp}/>
+                <div style={S.wrap}>
+                  <table style={S.tbl}>
+                    <thead>
+                      <tr>
+                        <th style={{...S.thL,width:"26%"}}>Empresa</th>
+                        <th onClick={()=>tgl("gmv_acumulado")}   style={S.th(sk==="gmv_acumulado")}>GMV Acumulado {si("gmv_acumulado")}</th>
+                        <th onClick={()=>tgl("ritmo_diario")}    style={S.th(sk==="ritmo_diario")}>Ritmo Diário {si("ritmo_diario")}</th>
+                        <th style={S.th(false)}>D.U. Restantes</th>
+                        <th onClick={()=>tgl("projecao_gmv")}    style={S.th(sk==="projecao_gmv")}>Projeção GMV {si("projecao_gmv")}</th>
+                        <th onClick={()=>tgl("meta")}            style={S.th(sk==="meta")}>Meta {si("meta")}</th>
+                        <th style={{...S.th(false),minWidth:90}}>Proj. vs Meta</th>
+                      </tr>
+                    </thead>
+                    <tbody>{rows.map(r=>{
+                      const projPct=r.meta?Math.round((r.projecao_gmv/r.meta)*100):0;
+                      return(
+                        <tr key={r.id_onfly}>
+                          <td style={S.tdL}>
+                            <span style={{fontSize:10,color:"#9CA3AF",display:"block"}}>#{r.id_onfly}</span>
+                            <span style={{color:"#111827",fontWeight:500,fontSize:11}}>{r.empresa_nome.length>28?r.empresa_nome.slice(0,28)+"…":r.empresa_nome}</span>
+                          </td>
+                          <td style={{...S.td,fontWeight:500,color:"#111827",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(r.gmv_acumulado)}</td>
+                          <td style={{...S.td,color:"#6B7280",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(r.ritmo_diario)}<span style={{fontSize:9,color:"#9CA3AF",display:"block"}}>/dia</span></td>
+                          <td style={{...S.td,color:"#6B7280"}}>{r.dias_uteis_restantes}</td>
+                          <td style={{...S.td,fontWeight:700,color:"#111827",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(r.projecao_gmv)}</td>
+                          <td style={{...S.td,color:"#6B7280",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(r.meta)}</td>
+                          <td style={S.td}>
+                            <span style={{fontWeight:700,color:pctColor(projPct),display:"block",marginBottom:3}}>{projPct}%</span>
+                            <PctBar pct={projPct}/>
+                          </td>
+                        </tr>
+                      );
+                    })}</tbody>
+                    <tfoot>
+                      <tr style={S.tf}>
+                        <td style={{...S.tdL,color:"#111827",fontSize:11}}>TOTAL</td>
+                        <td style={{...S.td,fontWeight:500,color:"#111827",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(tAcum)}</td>
+                        <td style={{...S.td,color:"#6B7280",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(tRitmo)}<span style={{fontSize:9,color:"#9CA3AF",display:"block"}}>/dia</span></td>
+                        <td style={S.td}/>
+                        <td style={{...S.td,fontWeight:700,color:"#111827",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(tProj)}</td>
+                        <td style={{...S.td,color:"#6B7280",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(tMeta)}</td>
+                        <td style={S.td}>
+                          <span style={{fontWeight:700,color:pctColor(Math.round((tProj/tMeta)*100)),display:"block",marginBottom:3}}>{tMeta?Math.round((tProj/tMeta)*100):0}%</span>
+                          <PctBar pct={tMeta?Math.round((tProj/tMeta)*100):0}/>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <p style={{marginTop:8,fontSize:11,color:"#9CA3AF"}}>
+                  Projeção = GMV acumulado + (ritmo diário × dias úteis restantes) · Dias úteis decorridos excluem sáb/dom
+                </p>
+              </>);
+            })()}
+          </>)}
+
+          {tab==="remuneracao"&&(<>
+            <div style={S.grid(120)}>
+              <StatCard label="Potencial total"  value={fmtBRL(tPot)}      accent="#7C3AED"/>
+              <StatCard label="Desbloqueada"      value={fmtBRL(tDesbloq)}  color={tDesbloq>0?"#0A8A5E":"#CC2A2A"} accent={tDesbloq>0?"#0A8A5E":"#CC2A2A"}/>
+              <StatCard label="% desbloqueado"    value={tPot?`${Math.round((tDesbloq/tPot)*100)}%`:"—"} color={pctColor((tDesbloq/tPot)*100)} accent="#F5A623"/>
+              <StatCard label="Empresas na meta"  value={`${data.filter(r=>r.pct>=100).length} / ${data.length}`} accent="#2563EB"/>
+            </div>
+            <input placeholder="Buscar empresa…" value={search} onChange={e=>setSearch(e.target.value)} style={S.inp}/>
+            <div style={S.wrap}>
+              <table style={S.tbl}>
+                <thead>
+                  <tr>
+                    <th style={{...S.thL,width:"22%"}}>Empresa</th>
+                    <th onClick={()=>tgl("score_final")}  style={S.th(sk==="score_final")}>Score {si("score_final")}</th>
+                    <th style={S.th(false)}>Faixa</th>
+                    <th style={S.th(false)}>Teto</th>
+                    <th style={S.th(false)}>Cota</th>
+                    <th onClick={()=>tgl("potencial")}    style={S.th(sk==="potencial")}>Potencial {si("potencial")}</th>
+                    <th style={S.th(false)}>Atingimento</th>
+                    <th onClick={()=>tgl("desbloqueada")} style={S.th(sk==="desbloqueada")}>Desbloqueada {si("desbloqueada")}</th>
+                  </tr>
+                </thead>
+                <tbody>{rows.map(r=>(
+                  <tr key={r.id_onfly}>
+                    <td style={S.tdL}>
+                      <span style={{fontSize:10,color:"#9CA3AF",display:"block"}}>#{r.id_onfly}</span>
+                      <span style={{color:"#111827",fontWeight:500,fontSize:11}}>{r.empresa_nome.length>26?r.empresa_nome.slice(0,26)+"…":r.empresa_nome}</span>
+                    </td>
+                    <td style={S.td}><ScoreRing value={r.score_final} color={scoreColor(r.score_final)} size={34}/></td>
+                    <td style={S.td}><span style={S.badge(faixaColor(r.faixa))}>{r.faixa}</span></td>
+                    <td style={{...S.td,fontSize:11,color:"#6B7280",fontVariantNumeric:"tabular-nums"}}>{fmtBRL(r.teto)}</td>
+                    <td style={{...S.td,color:"#9CA3AF"}}>{r.cota_part}%</td>
+                    <td style={{...S.td,fontWeight:600,color:"#111827",fontSize:11,fontVariantNumeric:"tabular-nums"}}>{fmtBRL(r.potencial)}</td>
+                    <td style={S.td}>
+                      <span style={{fontWeight:700,color:pctColor(r.pct),display:"block",marginBottom:2,fontSize:11}}>{r.pct}%</span>
+                      <PctBar pct={r.pct} h={3}/>
+                    </td>
+                    <td style={{...S.td,fontWeight:700,fontSize:11,color:r.desbloqueada>0?"#0A8A5E":"#D1D5DB",fontVariantNumeric:"tabular-nums"}}>{r.desbloqueada>0?fmtBRL(r.desbloqueada):"—"}</td>
+                  </tr>
+                ))}</tbody>
+                <tfoot>
+                  <tr style={S.tf}>
+                    <td colSpan={5} style={{...S.tdL,color:"#111827",fontSize:11}}>TOTAL</td>
+                    <td style={{...S.td,fontWeight:700,color:"#111827",fontSize:11,fontVariantNumeric:"tabular-nums"}}>{fmtBRL(tPot)}</td>
+                    <td style={S.td}/>
+                    <td style={{...S.td,fontWeight:700,color:"#0A8A5E",fontSize:11,fontVariantNumeric:"tabular-nums"}}>{fmtBRL(tDesbloq)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <p style={{marginTop:8,fontSize:11,color:"#9CA3AF"}}>
+              Faixa 1 (0–4.9): R$ 2.000 · Faixa 2 (5–7.9): R$ 3.000 · Faixa 3 (8–10): R$ 5.000
+            </p>
+          </>)}
+        </div>
+      </>)}
+    </div>
+  );
+}
+
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
