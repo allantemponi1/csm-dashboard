@@ -1,4 +1,24 @@
-import { useState, useCallback, useEffect } from "react";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CSM Dashboard - Onfly</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background: #F8F9FB; }
+    select, input, button { font-family: 'Outfit', sans-serif; }
+    input::placeholder { color: #9CA3AF; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useCallback, useEffect } = React;
 
 const CSMS = ["alan.sousa","alexandre.marques","alexsander.coelho","amanda.alves","ana.carolina","ana.gabriela","ana.vieira","analia.soares","andre.salles","anna.luiza","anny.caroline","barbara.felizardo","bethania.dias","brenda.reis","brenda.rodrigues","carla.jesus","charlene.rocha","chaynara.nascimento","daniel.massara","denise.vale","eduarda.sampaio","fabio.agoha","fernanda.lima","flavia.moreira","gabriel.tavares","gabriela.bastos","gabriela.maia","gabriela.pio","gabriella.gomes","giovana.torres","giulia.huoya","gustavo.siroti","hugo.moreira","hugo.pereira","ingrid.demaria","jessica.castro","jessica.moreira","jessica.pires","jonathan.andrada","julia.caroline","karen.barreto","karoline.rodrigues","larissa.amorim","leonardo.leite","luciana.rocha","luisa.santos","marcelo.henrique","maria.eduarda","maria.fernandes","mariana.simoes","mariana.vianna","marina.miranda","matheus.favorito","mayara.borges","michele.sates","michelle.carmo","milene.oliveira","natalia.maia","nathalia.martins","pamela.pereira","patricia.noguchi","paula.evelyn","pedro.maia","rafael.basilio","rafaela","remmo.martini","rhaller.duarte","ronara.guedes","samela.pereira","shayenne.penha","soraia.rodrigues","sthefanie.guedes","taina","tatiana.silva","thays.silva","thiago.rici","tiago.oliveira","vanessa.moreno","victor.silva","vitoria.oliveira","william.carvalho","wynara.xisto"].map(u=>`${u}@onfly.com.br`);
 
@@ -219,7 +239,7 @@ const TABS=[
   {k:"remuneracao",l:"Remuneração"},
 ];
 
-export default function Index() {
+function App() {
   const [tab,setTab]             = useState("overview");
   const [csm,setCsm]             = useState("gabriela.bastos@onfly.com.br");
   const [mesFilter,setMesFilter] = useState("2026-03");
@@ -674,3 +694,10 @@ export default function Index() {
     </div>
   );
 }
+
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  </script>
+</body>
+</html>
