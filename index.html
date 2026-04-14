@@ -302,16 +302,7 @@ function App() {
       if(filtered.length===0) throw new Error("Nenhum dado encontrado para "+email+" em "+mf.label+". Total linhas: "+all.length+". Meses disponíveis: "+[...new Set(all.map(r=>r.yearmonth))].join(", "));
       setData(enrich(filtered));
 
-      // Reconstroi historico GMV direto do CSV — todos os meses do CSM
-      const gmvFromSheet = all
-        .filter(r => r.cs_responsible_email && r.cs_responsible_email.trim() === email.trim())
-        .map(r => ({
-          id: +r.id_onfly,
-          ym: normalizeYM(r.yearmonth),
-          v:  +r.realizado || 0
-        }))
-        .filter(r => r.ym && r.v > 0);
-      setGmv(gmvFromSheet);
+      setGmv([]);
       setLoaded(true);
     }catch(e){setError(e.message);}
     finally{setLoading(false);}
@@ -403,7 +394,7 @@ function App() {
               <div style={{display:"flex",alignItems:"center",gap:12,padding:"7px 14px",background:"#F9FAFB",borderBottom:"1px solid #E5E7EB"}}>
                 <span style={{minWidth:16}}/>
                 <div style={{flex:1,fontSize:10,fontWeight:600,color:"#6B7280",letterSpacing:"0.05em",textTransform:"uppercase"}}>Empresa</div>
-                <div style={{fontSize:10,fontWeight:600,color:"#6B7280",letterSpacing:"0.05em",textTransform:"uppercase",minWidth:80,textAlign:"center"}}>Histórico GMV</div>
+
                 <div style={{fontSize:10,fontWeight:600,color:"#6B7280",letterSpacing:"0.05em",textTransform:"uppercase",minWidth:68,textAlign:"center"}}>Score</div>
               </div>
               {[...data].sort((a,b)=>b.score_final-a.score_final).map((r,i)=>(
@@ -423,7 +414,7 @@ function App() {
                       ))}
                     </div>
                   </div>
-                  <Spark data={gmv.filter(g=>g.id===r.id_onfly).sort((a,b)=>a.ym.localeCompare(b.ym)).map(g=>g.v)} color={EMP_COLORS[r.id_onfly]||"#888"}/>
+
                   <div style={{textAlign:"right",minWidth:68}}>
                     <ScoreRing value={r.score_final} color={scoreColor(r.score_final)} size={42}/>
                     <span style={S.badge(faixaColor(r.faixa))}>{r.faixa}</span>
@@ -432,30 +423,7 @@ function App() {
               ))}
             </div>
 
-            {gmvByMonth.some(m=>m.v>0)&&(<>
-              <div style={{height:20}}/>
-              <p style={S.st}>GMV total da carteira · 2025–2026</p>
-              <div style={{...S.wrap,padding:"14px 14px 6px"}}>
-                {(()=>{
-                  const mx=Math.max(...gmvByMonth.map(x=>x.v))||1;
-                  return(
-                    <svg width="100%" viewBox="0 0 500 140" style={{overflow:"visible"}}>
-                      {gmvByMonth.map((m,i)=>{
-                        const bh=Math.round((m.v/mx)*108);
-                        const x=4+i*(496/15);
-                        const isRecent=MONTHS.indexOf(m.ym)>=12;
-                        const label=m.v>=1e6?`${(m.v/1e6).toFixed(1)}M`:m.v>=1000?`${(m.v/1000).toFixed(0)}k`:"";
-                        return(<g key={m.ym}>
-                          <rect x={x} y={118-bh} width={24} height={bh} fill={isRecent?"#2563EB":"#BFDBFE"} rx="3"/>
-                          {m.v>0?<text x={x+12} y={118-bh-3} textAnchor="middle" fontSize="6" fontWeight="600" fill={isRecent?"#2563EB":"#93C5FD"}>{label}</text>:null}
-                          {i%3===0?<text x={x+12} y={130} textAnchor="middle" fontSize="7" fill="#9CA3AF">{MLABELS[i]}</text>:null}
-                        </g>);
-                      })}
-                    </svg>
-                  );
-                })()}
-              </div>
-            </>)}
+
           </>)}
 
           {tab==="scores"&&(<>
